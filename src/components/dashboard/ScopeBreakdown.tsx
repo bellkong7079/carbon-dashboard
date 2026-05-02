@@ -52,9 +52,9 @@ export default function ScopeBreakdown({ byScope }: Props) {
                   <div className={`w-3 h-3 rounded-sm ${color}`} />
                   <span className="text-sm text-gray-300">{label}</span>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="w-4 h-4 rounded-full bg-gray-700 text-gray-400 text-[10px] flex items-center justify-center cursor-help hover:bg-gray-600 transition-colors">?</span>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={<span className="w-4 h-4 rounded-full bg-gray-700 text-gray-400 text-[10px] flex items-center justify-center cursor-help hover:bg-gray-600 transition-colors">?</span>}
+                    />
                     <TooltipContent side="right" className="max-w-[220px] text-xs bg-gray-800 border-gray-700 text-gray-200">
                       <p className="font-semibold mb-1">{meta.label}</p>
                       <p>{meta.description}</p>

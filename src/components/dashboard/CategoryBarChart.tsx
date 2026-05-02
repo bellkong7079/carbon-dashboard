@@ -49,7 +49,8 @@ export default function CategoryBarChart({ byCategory }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
           <XAxis
             dataKey="name"
-            tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+            tick={(props) => {
+              const { x, y, payload } = props as { x: number; y: number; payload: { value: string } }
               const item = data.find((d) => d.name === payload.value)
               return (
                 <g transform={`translate(${x},${y})`}>

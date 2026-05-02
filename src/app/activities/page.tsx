@@ -83,7 +83,7 @@ export default function ActivitiesPage() {
       {/* 필터 */}
       <div className="flex items-center gap-3">
         <span className="text-sm text-gray-400">유형 필터:</span>
-        <Select value={typeFilter} onValueChange={handleFilterChange}>
+        <Select value={typeFilter} onValueChange={(v) => { if (v) handleFilterChange(v) }}>
           <SelectTrigger className="w-36 h-8 bg-gray-900 border-gray-700 text-white text-sm">
             <SelectValue />
           </SelectTrigger>
