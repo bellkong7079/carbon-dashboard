@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { calculateEmission, resolveScope, ACTIVITY_TYPE_UNITS, DESCRIPTION_TO_FACTOR_KEY } from '@/lib/emissions'
