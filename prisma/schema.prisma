@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Activity {
+  id             String   @id @default(cuid())
+  date           DateTime
+  activityType   String
+  description    String
+  amount         Float
+  unit           String
+  emissionFactor Float
+  emission       Float
+  scope          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([activityType])
+  @@index([date])
+  @@index([scope])
+}
+
+model EmissionFactor {
+  id        String                  @id @default(cuid())
+  key       String                  @unique
+  name      String
+  unit      String
+  createdAt DateTime                @default(now())
+  versions  EmissionFactorVersion[]
+}
+
+model EmissionFactorVersion {
+  id               String         @id @default(cuid())
+  emissionFactorId String
+  factor           Float
+  source           String
+  validFrom        DateTime
+  validTo          DateTime?
+  createdAt        DateTime       @default(now())
+  emissionFactor   EmissionFactor @relation(fields: [emissionFactorId], references: [id])
+
+  @@index([emissionFactorId])
+  @@index([validFrom])
+}
