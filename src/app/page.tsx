@@ -9,7 +9,9 @@ import type { EmissionsResponse } from '@/types'
 
 async function getEmissions(): Promise<EmissionsResponse | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
     const res = await fetch(`${baseUrl}/api/emissions`, { cache: 'no-store' })
     if (!res.ok) return null
     return res.json()

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build && node -e \"require('fs').writeFileSync('.next/export-detail.json', JSON.stringify({version:1,success:true,outDirectory:require('path').join(process.cwd(),'.next','out')}))\"",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
   },
