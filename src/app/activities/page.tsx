@@ -1,11 +1,10 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
-import * as XLSX from 'xlsx'
 import Header from '@/components/layout/Header'
 import ActivityTable from '@/components/activities/ActivityTable'
 import ActivityForm from '@/components/activities/ActivityForm'
 import ExcelUploader from '@/components/activities/ExcelUploader'
-import { ACTIVITY_TYPE_LABELS } from '@/lib/emissions'
+import ExportModal from '@/components/activities/ExportModal'
 import type { ActivitiesResponse } from '@/types'
 
 function CSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
@@ -38,42 +37,11 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [uploaderOpen, setUploaderOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState('date')
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
-
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const params = new URLSearchParams({ page: '1', limit: '9999', sortBy, order })
-      if (typeFilter !== 'all') params.set('type', typeFilter)
-      const res = await fetch(`/api/activities?${params}`)
-      if (!res.ok) return
-      const json: ActivitiesResponse = await res.json()
-
-      const rows = json.data.map(a => ({
-        '일자(원본)': new Date(a.date).toISOString().slice(0, 10),
-        '활동 유형': ACTIVITY_TYPE_LABELS[a.activityType] ?? a.activityType,
-        '설명': a.description,
-        '량': a.amount,
-        '단위': a.unit,
-        '배출계수': a.emissionFactor,
-        '배출량 (kgCO₂e)': a.emission,
-        'Scope': a.scope === 'scope2' ? 'Scope 2' : 'Scope 3',
-      }))
-
-      const ws = XLSX.utils.json_to_sheet(rows)
-      ws['!cols'] = [{ wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 10 }]
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'activities')
-      const date = new Date().toISOString().slice(0, 10)
-      XLSX.writeFile(wb, `carbon-activities-${date}.xlsx`)
-    } finally {
-      setExporting(false)
-    }
-  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -96,12 +64,12 @@ export default function ActivitiesPage() {
         description="전기·원소재·운송 배출 활동 데이터 입력 및 조회"
         action={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleExport} disabled={exporting}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: exporting ? 'not-allowed' : 'pointer', transition: 'all .15s', opacity: exporting ? 0.5 : 1 }}
-              onMouseEnter={e => { if (!exporting) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+            <button onClick={() => setExportOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-primary)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
               <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><line x1="7" y1="5" x2="7" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><polyline points="4,10 7,13 10,10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 4V2a1 1 0 011-1h8a1 1 0 011 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              {exporting ? '내보내는 중...' : 'Excel 내보내기'}
+              Excel 내보내기
             </button>
             <button onClick={() => setUploaderOpen(true)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all .15s' }}
@@ -155,6 +123,7 @@ export default function ActivitiesPage() {
 
       <ActivityForm open={formOpen} onClose={() => setFormOpen(false)} onSuccess={fetchData} />
       <ExcelUploader open={uploaderOpen} onClose={() => setUploaderOpen(false)} onSuccess={fetchData} />
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   )
 }
