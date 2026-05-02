@@ -12,8 +12,8 @@
 
 ```bash
 # 1. 저장소 클론 및 의존성 설치
-git clone https://github.com/YOUR/carbon-dashboard
-cd carbon-dashboard && yarn install
+git clone https://github.com/bellkong7079/carbon-dashboard
+cd carbon-dashboard && npm install
 
 # 2. 환경 변수 설정
 cp .env.example .env.local
@@ -23,17 +23,14 @@ cp .env.example .env.local
 docker-compose up -d
 
 # 4. 마이그레이션 및 시드 데이터 입력
-yarn prisma migrate deploy
-yarn prisma db seed
+npx prisma migrate deploy
+npx prisma db seed
 
 # 5. 서버 실행
-yarn dev          # 개발 모드
-# 또는 프로덕션 모드:
-# yarn build && yarn start
+npm run dev
 
-# → http://localhost:3000        대시보드
+# → http://localhost:3000           대시보드
 # → http://localhost:3000/activities  활동 데이터
-# → http://localhost:3000/api-docs    Swagger UI
 ```
 
 ---
@@ -58,12 +55,12 @@ yarn dev          # 개발 모드
 
 | 기술 | 선택 이유 |
 |------|-----------|
-| Next.js 14 App Router | 프론트+백엔드 통합, 서버 컴포넌트로 초기 로딩 최적화 |
-| Prisma 5 | 타입 안전한 DB 접근, 마이그레이션 관리 용이 |
-| shadcn/ui | 커스터마이징 가능한 접근성 준수 컴포넌트 |
-| Recharts | React 친화적, 커스텀 툴팁·범례 자유도 높음 |
+| Next.js 14 App Router | 프론트+백엔드 통합, API Route Handler로 REST 직접 구현 |
+| Prisma 5 + SQLite | 타입 안전한 DB 접근, 로컬 개발 시 별도 DB 설치 불필요 |
+| Custom SVG 차트 | 외부 차트 라이브러리 없이 애니메이션·툴팁 직접 구현, 번들 크기 최소화 |
+| SheetJS (xlsx) | Excel 업로드·다운로드 양방향 지원, 멀티시트 내보내기 |
 | zod | 런타임 유효성 검사 + TypeScript 타입 자동 추론 |
-| Supabase | PostgreSQL 완전 호환, 무료 티어, Vercel 연동 간편 |
+| CSS Variables 다크 테마 | Tailwind 없이 일관된 디자인 토큰 시스템 구축 |
 
 ---
 
@@ -181,8 +178,8 @@ datasource db {
 
 ### Step 3: Supabase에 마이그레이션 실행
 ```bash
-yarn prisma migrate deploy
-yarn prisma db seed
+npx prisma migrate deploy
+npx prisma db seed
 ```
 
 ### Step 4: Vercel 환경 변수 설정
@@ -198,9 +195,10 @@ NEXT_PUBLIC_APP_NAME = Carbon Dashboard
 
 | 도구 | 사용한 부분 | 사용한 프롬프트 요약 | 결정 이유 |
 |------|-------------|---------------------|-----------|
-| Claude Code | 전체 시스템 설계 및 코드 구현 | "탄소 관리 대시보드 풀스택 구현 완전 명세" | 초기 구조 빠르게 검증 |
-| Claude Code | Prisma 스키마 설계 | "배출계수 버전 이력 추적 스키마" | ERD 설계 시간 단축 |
-| Claude Code | Recharts 커스텀 툴팁 | "LineChart 커스텀 툴팁 + Scope 라벨" | 문서보다 빠른 예제 확인 |
-| Claude Code | README 초안 | "채용과제 README 작성, trade-off 포함" | 문서 구조 빠르게 잡기 위해 |
-| 직접 구현 | 배출량 계산 검증 | — | 수치 정확성은 직접 확인 필수 |
-| 직접 구현 | 시드 데이터 29개 행 검증 | — | 원본 데이터 정합성 직접 확인 |
+| Claude Code | 전체 시스템 설계 및 코드 구현 | "탄소 관리 대시보드 풀스택 구현 — Prisma, API Route, UI 포함" | 초기 구조 빠르게 검증 |
+| Claude Code | Prisma 스키마 설계 | "배출계수 버전 이력 추적 스키마 설계" | ERD 설계 시간 단축 |
+| Claude Code | Custom SVG 차트 구현 | "Recharts 없이 SVG 라인차트·바차트 직접 구현, 애니메이션 포함" | 번들 크기 최소화 결정 후 직접 구현 |
+| Claude Code | Excel 업로드·내보내기 | "SheetJS 멀티시트 내보내기, 날짜 범위 필터 옵션 모달" | 양방향 Excel 기능 빠르게 완성 |
+| Claude Code | README 초안 | "채용과제 README — trade-off, 설계 이유, ERD 포함" | 문서 구조 빠르게 잡기 위해 |
+| 직접 검증 | 배출량 계산 수치 확인 | — | 수치 정확성은 직접 확인 필수 |
+| 직접 검증 | 시드 데이터 29개 행 원본 대조 | — | 과제 원본 데이터 정합성 보장 |
