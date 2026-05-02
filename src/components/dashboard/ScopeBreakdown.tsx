@@ -1,8 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatEmission } from '@/lib/format'
-import { SCOPE_META } from '@/lib/emissions'
 import type { ScopeStats } from '@/types'
 
 interface Props {
@@ -11,65 +8,62 @@ interface Props {
 
 export default function ScopeBreakdown({ byScope }: Props) {
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setTimeout(() => setMounted(true), 50) }, [])
+  const [tip, setTip] = useState<{ x: number; y: number; desc: string } | null>(null)
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 120); return () => clearTimeout(t) }, [])
 
   const scope2 = byScope['scope2'] ?? { emission: 0, percent: 0 }
   const scope3 = byScope['scope3'] ?? { emission: 0, percent: 0 }
 
-  const scopes = [
-    { key: 'scope2', label: 'Scope 2', stats: scope2, color: 'bg-blue-500' },
-    { key: 'scope3', label: 'Scope 3', stats: scope3, color: 'bg-purple-500' },
+  const rows = [
+    {
+      key: 'scope2', label: 'Scope 2', sub: '전기 사용',
+      color: 'var(--color-electricity)', val: scope2.emission, pct: scope2.percent,
+      desc: '외부에서 구매·사용한 전기로 인한 간접 배출. GHG Protocol 기준.',
+    },
+    {
+      key: 'scope3', label: 'Scope 3', sub: '원소재 + 운송',
+      color: 'var(--color-material)', val: scope3.emission, pct: scope3.percent,
+      desc: '원자재 조달, 제품 운송 등 공급망 전반의 간접 배출. GHG Protocol 기준.',
+    },
   ]
 
   return (
-    <TooltipProvider>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">Scope별 배출 비율</h3>
-
-        {/* 수평 비율 바 */}
-        <div className="flex h-8 rounded-lg overflow-hidden mb-4">
-          <div
-            className="bg-blue-500 flex items-center justify-center text-xs font-medium text-white transition-all duration-1000 ease-out"
-            style={{ width: mounted ? `${scope2.percent}%` : '0%' }}
-          >
-            {scope2.percent > 5 ? `${scope2.percent}%` : ''}
+    <div style={{ borderRadius: 12, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', padding: 20, position: 'relative' }}>
+      <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, fontSize: 13, color: 'var(--text-primary)', marginBottom: 20 }}>
+        GHG 배출 범위 분류
+      </h3>
+      {rows.map(({ key, label, sub, color, val, pct, desc }) => (
+        <div key={key} style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 13, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-primary)' }}>{label}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>— {sub}</span>
+              <button
+                style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--bg-elevated)', border: 'none', cursor: 'help', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 9, fontFamily: 'var(--font-dm-mono), DM Mono, monospace' }}
+                onMouseEnter={e => {
+                  const r = e.currentTarget.getBoundingClientRect()
+                  setTip({ x: r.right + 8, y: r.top, desc })
+                }}
+                onMouseLeave={() => setTip(null)}
+              >?</button>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: 13, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-primary)' }}>{pct.toFixed(1)}%</span>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)', marginLeft: 8 }}>
+                {val.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kgCO₂e
+              </span>
+            </div>
           </div>
-          <div
-            className="bg-purple-500 flex items-center justify-center text-xs font-medium text-white transition-all duration-1000 ease-out"
-            style={{ width: mounted ? `${scope3.percent}%` : '0%' }}
-          >
-            {scope3.percent > 5 ? `${scope3.percent}%` : ''}
+          <div style={{ height: 8, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 99, background: color, width: mounted ? `${pct}%` : '0%', transition: 'width 1s ease-out' }} />
           </div>
         </div>
-
-        {/* 범례 */}
-        <div className="space-y-3">
-          {scopes.map(({ key, label, stats, color }) => {
-            const meta = SCOPE_META[key]
-            return (
-              <div key={key} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm ${color}`} />
-                  <span className="text-sm text-gray-300">{label}</span>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<span className="w-4 h-4 rounded-full bg-gray-700 text-gray-400 text-[10px] flex items-center justify-center cursor-help hover:bg-gray-600 transition-colors">?</span>}
-                    />
-                    <TooltipContent side="right" className="max-w-[220px] text-xs bg-gray-800 border-gray-700 text-gray-200">
-                      <p className="font-semibold mb-1">{meta.label}</p>
-                      <p>{meta.description}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-white">{formatEmission(stats.emission)}</p>
-                  <p className="text-xs text-gray-500">{stats.percent.toFixed(1)}%</p>
-                </div>
-              </div>
-            )
-          })}
+      ))}
+      {tip && (
+        <div style={{ position: 'fixed', left: tip.x, top: tip.y, zIndex: 9999, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '8px 12px', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 260, pointerEvents: 'none', boxShadow: '0 8px 32px rgba(0,0,0,.6)', lineHeight: 1.5 }}>
+          {tip.desc}
         </div>
-      </div>
-    </TooltipProvider>
+      )}
+    </div>
   )
 }
