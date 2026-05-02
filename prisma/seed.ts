@@ -105,7 +105,7 @@ async function main() {
     })
   }
 
-  console.log('✅ Seed complete: 4 emission factors + 29 activities')
+  console.log('✅ Seed complete: 4 emission factors + 30 activities')
 }
 
 main()

@@ -26,8 +26,11 @@ docker-compose up -d
 yarn prisma migrate deploy
 yarn prisma db seed
 
-# 5. 개발 서버 실행
-yarn dev
+# 5. 서버 실행
+yarn dev          # 개발 모드
+# 또는 프로덕션 모드:
+# yarn build && yarn start
+
 # → http://localhost:3000        대시보드
 # → http://localhost:3000/activities  활동 데이터
 # → http://localhost:3000/api-docs    Swagger UI
