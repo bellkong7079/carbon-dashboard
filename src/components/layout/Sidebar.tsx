@@ -1,13 +1,12 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ListChecks, FileText } from 'lucide-react'
+import { LayoutDashboard, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/', label: '대시보드', icon: LayoutDashboard },
   { href: '/activities', label: '활동 데이터', icon: ListChecks },
-  { href: '/api-docs', label: 'API 문서', icon: FileText },
 ]
 
 function HexIcon() {
