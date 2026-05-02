@@ -1,10 +1,11 @@
 'use client'
-import SwaggerUI from 'swagger-ui-react'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const SwaggerUI = require('swagger-ui-react').default
 import 'swagger-ui-react/swagger-ui.css'
 import { useEffect, useState } from 'react'
 
 export default function ApiDocsPage() {
-  const [spec, setSpec] = useState(null)
+  const [spec, setSpec] = useState<object | null>(null)
   useEffect(() => {
     fetch('/api/swagger').then((r) => r.json()).then(setSpec)
   }, [])

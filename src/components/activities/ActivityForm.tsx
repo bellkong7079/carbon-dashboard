@@ -123,7 +123,7 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
             <Label className="text-gray-300 text-sm">활동 유형</Label>
             <Select
               value={activityType}
-              onValueChange={(v) => setValue('activityType', v as ActivityInput['activityType'])}
+              onValueChange={(v) => { if (v) setValue('activityType', v as ActivityInput['activityType']) }}
             >
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue />
@@ -144,7 +144,7 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
             <Label className="text-gray-300 text-sm">설명</Label>
             <Select
               value={description}
-              onValueChange={(v) => setValue('description', v)}
+              onValueChange={(v) => { if (v) setValue('description', v) }}
             >
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue />
