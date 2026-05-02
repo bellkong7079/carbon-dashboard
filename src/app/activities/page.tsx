@@ -4,10 +4,32 @@ import Header from '@/components/layout/Header'
 import ActivityTable from '@/components/activities/ActivityTable'
 import ActivityForm from '@/components/activities/ActivityForm'
 import ExcelUploader from '@/components/activities/ExcelUploader'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Upload } from 'lucide-react'
 import type { ActivitiesResponse } from '@/types'
+
+function CSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  const [open, setOpen] = useState(false)
+  const sel = options.find(o => o.value === value)
+  return (
+    <div style={{ position: 'relative' }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer', width: 140 }}>
+        <span>{sel?.label ?? '선택'}</span>
+        <svg width={10} height={10} viewBox="0 0 10 10" fill="none"><polyline points={open ? '2,7 5,3 8,7' : '2,3 5,7 8,3'} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {open && (
+        <div onMouseLeave={() => setOpen(false)} style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 6, zIndex: 200, boxShadow: '0 8px 32px rgba(0,0,0,.5)', overflow: 'hidden' }}>
+          {options.map(o => (
+            <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false) }}
+              style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: value === o.value ? 'var(--bg-elevated)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: value === o.value ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = value === o.value ? 'var(--bg-elevated)' : 'transparent'; e.currentTarget.style.color = value === o.value ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+            >{o.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ActivitiesPage() {
   const [data, setData] = useState<ActivitiesResponse | null>(null)
@@ -22,18 +44,10 @@ export default function ActivitiesPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '20',
-        sortBy,
-        order,
-      })
+      const params = new URLSearchParams({ page: String(page), limit: '20', sortBy, order })
       if (typeFilter !== 'all') params.set('type', typeFilter)
       const res = await fetch(`/api/activities?${params}`)
-      if (res.ok) {
-        const json = await res.json()
-        setData(json)
-      }
+      if (res.ok) setData(await res.json())
     } finally {
       setLoading(false)
     }
@@ -41,90 +55,65 @@ export default function ActivitiesPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const handleSortChange = (newSortBy: string, newOrder: 'asc' | 'desc') => {
-    setSortBy(newSortBy)
-    setOrder(newOrder)
-    setPage(1)
-  }
-
-  const handleFilterChange = (value: string) => {
-    setTypeFilter(value)
-    setPage(1)
-  }
-
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header
-        title="활동 데이터 관리"
+        title="활동 데이터"
         description="전기·원소재·운송 배출 활동 데이터 입력 및 조회"
         action={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 gap-1.5"
-              onClick={() => setUploaderOpen(true)}
-            >
-              <Upload size={14} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setUploaderOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
+              <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><line x1="7" y1="1" x2="7" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><polyline points="4,4 7,1 10,4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               Excel 업로드
-            </Button>
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              onClick={() => setFormOpen(true)}
-            >
-              <Plus size={14} />
+            </button>
+            <button onClick={() => setFormOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: 'none', background: 'var(--color-accent)', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, fontSize: 13, color: '#000', cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)' }}
+              onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}>
+              <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="1" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               데이터 추가
-            </Button>
+            </button>
           </div>
         }
       />
 
-      {/* 필터 */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-400">유형 필터:</span>
-        <Select value={typeFilter} onValueChange={(v) => { if (v) handleFilterChange(v) }}>
-          <SelectTrigger className="w-36 h-8 bg-gray-900 border-gray-700 text-white text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="all" className="text-white text-sm">전체</SelectItem>
-            <SelectItem value="electricity" className="text-white text-sm">전기</SelectItem>
-            <SelectItem value="material" className="text-white text-sm">원소재</SelectItem>
-            <SelectItem value="transport" className="text-white text-sm">운송</SelectItem>
-          </SelectContent>
-        </Select>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Filter bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 14, borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
+          <CSelect
+            value={typeFilter}
+            onChange={v => { setTypeFilter(v); setPage(1) }}
+            options={[{ value: 'all', label: '전체 유형' }, { value: 'electricity', label: '전기' }, { value: 'material', label: '원소재' }, { value: 'transport', label: '운송' }]}
+          />
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)' }}>
+            검색 결과: <span style={{ color: 'var(--text-secondary)' }}>{data?.pagination.total ?? 0}건</span>
+          </span>
+        </div>
+
+        {loading && (
+          <div style={{ borderRadius: 10, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', padding: 48, textAlign: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-muted)' }}>로딩 중...</p>
+          </div>
+        )}
+
+        {!loading && data && (
+          <ActivityTable
+            activities={data.data}
+            pagination={data.pagination}
+            onPageChange={setPage}
+            onSortChange={(s, o) => { setSortBy(s); setOrder(o); setPage(1) }}
+            sortBy={sortBy}
+            order={order}
+            onRefresh={fetchData}
+          />
+        )}
       </div>
 
-      {loading && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
-          <p className="text-gray-500 text-sm">로딩 중...</p>
-        </div>
-      )}
-
-      {!loading && data && (
-        <ActivityTable
-          activities={data.data}
-          pagination={data.pagination}
-          onPageChange={setPage}
-          onSortChange={handleSortChange}
-          sortBy={sortBy}
-          order={order}
-          onRefresh={fetchData}
-        />
-      )}
-
-      <ActivityForm
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSuccess={fetchData}
-      />
-
-      <ExcelUploader
-        open={uploaderOpen}
-        onClose={() => setUploaderOpen(false)}
-        onSuccess={fetchData}
-      />
+      <ActivityForm open={formOpen} onClose={() => setFormOpen(false)} onSuccess={fetchData} />
+      <ExcelUploader open={uploaderOpen} onClose={() => setUploaderOpen(false)} onSuccess={fetchData} />
     </div>
   )
 }

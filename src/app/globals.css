@@ -1,61 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+:root {
+  /* ── 배경 계층 ── */
+  --bg-base:     #08080a;
+  --bg-surface:  #0f0f12;
+  --bg-elevated: #16161a;
+  --bg-overlay:  #1c1c22;
+
+  /* ── 테두리 ── */
+  --border-faint:   #1e1e24;
+  --border-subtle:  #27272f;
+  --border-default: #3a3a45;
+  --border-strong:  #52525e;
+
+  /* ── 텍스트 ── */
+  --text-primary:   #f4f4f6;
+  --text-secondary: #9494a0;
+  --text-muted:     #4e4e5a;
+  --text-disabled:  #2e2e38;
+
+  /* ── 데이터 색상 ── */
+  --color-electricity:    #38bdf8;
+  --color-material:       #fb923c;
+  --color-transport:      #4ade80;
+  --color-electricity-bg: rgba(56, 189, 248, 0.08);
+  --color-material-bg:    rgba(251, 146, 60, 0.08);
+  --color-transport-bg:   rgba(74, 222, 128, 0.08);
+
+  /* ── 상태 ── */
+  --color-danger:     #f87171;
+  --color-success:    #34d399;
+  --color-warning:    #fbbf24;
+  --color-danger-bg:  rgba(248, 113, 113, 0.08);
+  --color-success-bg: rgba(52, 211, 153, 0.08);
+  --color-warning-bg: rgba(251, 191, 36, 0.08);
+
+  /* ── 포인트 ── */
+  --color-accent:    #22d3ee;
+  --color-accent-bg: rgba(34, 211, 238, 0.08);
+
+  /* ── 차트 ── */
+  --chart-grid: #1e1e24;
+
+  /* shadcn 호환 변수 */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --radius: 0.5rem;
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Syne', sans-serif;
   }
 }
+
+/* ── 애니메이션 ── */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUpFade 0.4s ease-out both;
+}
+
+@keyframes rowHighlight {
+  0%   { background-color: rgba(34, 211, 238, 0.10); }
+  100% { background-color: transparent; }
+}
+.row-new {
+  animation: rowHighlight 1.5s ease-out both;
+}
+
+/* ── 스크롤바 ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+
+/* ── 숫자 인풋 ── */
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ── 날짜 인풋 ── */
+input[type="date"] { color-scheme: dark; }

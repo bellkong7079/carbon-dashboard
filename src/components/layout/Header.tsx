@@ -6,10 +6,41 @@ interface HeaderProps {
 
 export default function Header({ title, description, action }: HeaderProps) {
   return (
-    <div className="flex items-center justify-between pb-6 border-b border-gray-800 mb-6">
+    <div
+      style={{
+        padding: '0 24px',
+        height: 56,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid var(--border-faint)',
+        flexShrink: 0,
+      }}
+    >
       <div>
-        <h1 className="text-xl font-semibold text-white">{title}</h1>
-        {description && <p className="text-sm text-gray-400 mt-0.5">{description}</p>}
+        <h1
+          style={{
+            fontFamily: 'var(--font-syne), Syne, sans-serif',
+            fontWeight: 600,
+            fontSize: 18,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {title}
+        </h1>
+        {description && (
+          <p
+            style={{
+              fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              marginTop: 1,
+            }}
+          >
+            {description}
+          </p>
+        )}
       </div>
       {action && <div>{action}</div>}
     </div>
