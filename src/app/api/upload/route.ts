@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { calculateEmission, resolveScope, ACTIVITY_TYPE_UNITS, DESCRIPTION_TO_FACTOR_KEY } from '@/lib/emissions'
+import { calculateEmission } from '@/lib/emissions'
 import * as XLSX from 'xlsx'
 
 const ACTIVITY_TYPE_MAP: Record<string, string> = {
@@ -60,6 +60,14 @@ export async function POST(request: NextRequest) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
 
+    const [allFactors, allTypes] = await Promise.all([
+      prisma.emissionFactor.findMany({
+        include: { versions: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } },
+      }),
+      prisma.activityType.findMany(),
+    ])
+    const typeMap = Object.fromEntries(allTypes.map(t => [t.key, t]))
+
     let inserted = 0
     let skipped = 0
 
@@ -98,23 +106,16 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const factorKey = DESCRIPTION_TO_FACTOR_KEY[description]
-      if (!factorKey) {
+      const ef = allFactors.find(f => f.name === description && f.activityType === activityType)
+      if (!ef || !ef.versions[0]) {
         skipped++
         continue
       }
 
-      const efVersion = await prisma.emissionFactorVersion.findFirst({
-        where: { emissionFactor: { key: factorKey }, validTo: null },
-        orderBy: { validFrom: 'desc' },
-      })
-      if (!efVersion) {
-        skipped++
-        continue
-      }
-
-      const scope = resolveScope(activityType)
-      const unit = ACTIVITY_TYPE_UNITS[activityType] ?? String(row['단위'] ?? '')
+      const actType = typeMap[activityType]
+      const scope = actType?.scope ?? (activityType === 'electricity' ? 'scope2' : 'scope3')
+      const unit = actType?.unit ?? String(row['단위'] ?? '')
+      const efVersion = ef.versions[0]
       const emission = calculateEmission(amount, efVersion.factor)
 
       await prisma.activity.create({

@@ -28,12 +28,15 @@ model Activity {
 }
 
 model EmissionFactor {
-  id        String                  @id @default(cuid())
-  key       String                  @unique
-  name      String
-  unit      String
-  createdAt DateTime                @default(now())
-  versions  EmissionFactorVersion[]
+  id           String                  @id @default(cuid())
+  key          String                  @unique
+  name         String
+  unit         String
+  activityType String                  @default("electricity")
+  createdAt    DateTime                @default(now())
+  versions     EmissionFactorVersion[]
+
+  @@index([activityType])
 }
 
 model EmissionFactorVersion {
@@ -44,8 +47,17 @@ model EmissionFactorVersion {
   validFrom        DateTime
   validTo          DateTime?
   createdAt        DateTime       @default(now())
-  emissionFactor   EmissionFactor @relation(fields: [emissionFactorId], references: [id])
+  emissionFactor   EmissionFactor @relation(fields: [emissionFactorId], references: [id], onDelete: Cascade)
 
   @@index([emissionFactorId])
   @@index([validFrom])
+}
+
+model ActivityType {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  unit      String
+  scope     String
+  createdAt DateTime @default(now())
 }

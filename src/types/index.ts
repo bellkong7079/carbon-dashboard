@@ -17,8 +17,20 @@ export interface EmissionFactor {
   key: string
   name: string
   unit: string
+  activityType: string
   createdAt: string
   currentFactor?: number
+  source?: string | null
+  validFrom?: string | null
+}
+
+export interface ActivityType {
+  id: string
+  key: string
+  label: string
+  unit: string
+  scope: string
+  createdAt: string
 }
 
 export interface EmissionFactorVersion {

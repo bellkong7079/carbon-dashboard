@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { activityInputSchema } from '@/lib/validations'
-import { calculateEmission, resolveScope, ACTIVITY_TYPE_UNITS, DESCRIPTION_TO_FACTOR_KEY } from '@/lib/emissions'
+import { calculateEmission } from '@/lib/emissions'
 import { Prisma } from '@prisma/client'
 
 /**
@@ -151,32 +151,24 @@ export async function POST(request: NextRequest) {
 
     const { date, activityType, description, amount } = parsed.data
 
-    const factorKey = DESCRIPTION_TO_FACTOR_KEY[description]
-    if (!factorKey) {
-      return NextResponse.json(
-        { error: '알 수 없는 설명입니다. 올바른 설명을 선택하세요.' },
-        { status: 400 }
-      )
+    const [ef, actType] = await Promise.all([
+      prisma.emissionFactor.findFirst({
+        where: { name: description, activityType },
+        include: { versions: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } },
+      }),
+      prisma.activityType.findUnique({ where: { key: activityType } }),
+    ])
+
+    if (!ef || !ef.versions[0]) {
+      return NextResponse.json({ error: '배출계수를 찾을 수 없습니다' }, { status: 400 })
+    }
+    if (!actType) {
+      return NextResponse.json({ error: '알 수 없는 활동 유형입니다' }, { status: 400 })
     }
 
-    const efVersion = await prisma.emissionFactorVersion.findFirst({
-      where: {
-        emissionFactor: { key: factorKey },
-        validTo: null,
-      },
-      orderBy: { validFrom: 'desc' },
-    })
-
-    if (!efVersion) {
-      return NextResponse.json(
-        { error: '배출계수를 찾을 수 없습니다' },
-        { status: 400 }
-      )
-    }
-
-    const scope = resolveScope(activityType)
-    const unit = ACTIVITY_TYPE_UNITS[activityType]
-    const emission = calculateEmission(amount, efVersion.factor)
+    const scope = actType.scope
+    const unit = actType.unit
+    const emission = calculateEmission(amount, ef.versions[0].factor)
 
     const activity = await prisma.activity.create({
       data: {
@@ -185,7 +177,7 @@ export async function POST(request: NextRequest) {
         description,
         amount,
         unit,
-        emissionFactor: efVersion.factor,
+        emissionFactor: ef.versions[0].factor,
         emission,
         scope,
       },

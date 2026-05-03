@@ -2,33 +2,10 @@ export function calculateEmission(amount: number, factor: number): number {
   return Math.round(amount * factor * 100) / 100
 }
 
-export const DESCRIPTION_TO_FACTOR_KEY: Record<string, string> = {
-  '한국전력': 'electricity_kepco',
-  '플라스틱 1': 'material_plastic1',
-  '플라스틱 2': 'material_plastic2',
-  '트럭': 'transport_truck',
-}
-
-export function resolveScope(activityType: string): 'scope2' | 'scope3' {
-  return activityType === 'electricity' ? 'scope2' : 'scope3'
-}
-
 export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   electricity: '전기',
   material: '원소재',
   transport: '운송',
-}
-
-export const ACTIVITY_TYPE_UNITS: Record<string, string> = {
-  electricity: 'kWh',
-  material: 'kg',
-  transport: 'ton-km',
-}
-
-export const ACTIVITY_TYPE_DESCRIPTIONS: Record<string, string[]> = {
-  electricity: ['한국전력'],
-  material: ['플라스틱 1', '플라스틱 2'],
-  transport: ['트럭'],
 }
 
 export const SCOPE_META: Record<string, { label: string; description: string }> = {
@@ -44,11 +21,12 @@ export const SCOPE_META: Record<string, { label: string; description: string }> 
 
 export function generateInsight(
   byCategory: Record<string, number>,
-  total: number
+  total: number,
+  labelMap: Record<string, string> = ACTIVITY_TYPE_LABELS
 ): { message: string; level: 'info' | 'warning' | 'critical' } {
   const [key, value] = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]
   const percent = (value / total) * 100
-  const label = ACTIVITY_TYPE_LABELS[key]
+  const label = labelMap[key] ?? key
 
   if (percent > 80) {
     return {

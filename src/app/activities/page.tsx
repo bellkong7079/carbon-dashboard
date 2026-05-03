@@ -5,6 +5,7 @@ import ActivityTable from '@/components/activities/ActivityTable'
 import ActivityForm from '@/components/activities/ActivityForm'
 import ExcelUploader from '@/components/activities/ExcelUploader'
 import ExportModal from '@/components/activities/ExportModal'
+import FactorManager from '@/components/settings/FactorManager'
 import type { ActivitiesResponse } from '@/types'
 
 function CSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
@@ -38,6 +39,7 @@ export default function ActivitiesPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [uploaderOpen, setUploaderOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [managerOpen, setManagerOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState('date')
@@ -64,6 +66,13 @@ export default function ActivitiesPage() {
         description="전기·원소재·운송 배출 활동 데이터 입력 및 조회"
         action={
           <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setManagerOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
+              <svg width={13} height={13} viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.22 3.22l1.41 1.41M9.37 9.37l1.41 1.41M3.22 10.78l1.41-1.41M9.37 4.63l1.41-1.41" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              유형 관리
+            </button>
             <button onClick={() => setExportOpen(true)}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-primary)' }}
@@ -124,6 +133,7 @@ export default function ActivitiesPage() {
       <ActivityForm open={formOpen} onClose={() => setFormOpen(false)} onSuccess={fetchData} />
       <ExcelUploader open={uploaderOpen} onClose={() => setUploaderOpen(false)} onSuccess={fetchData} />
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
+      <FactorManager open={managerOpen} onClose={() => setManagerOpen(false)} />
     </div>
   )
 }

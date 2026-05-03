@@ -5,11 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { activityInputSchema, type ActivityInput } from '@/lib/validations'
-import {
-  ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_DESCRIPTIONS, ACTIVITY_TYPE_UNITS,
-  calculateEmission, DESCRIPTION_TO_FACTOR_KEY,
-} from '@/lib/emissions'
-import type { EmissionFactor } from '@/types'
+import { calculateEmission } from '@/lib/emissions'
+import type { EmissionFactor, ActivityType } from '@/types'
 
 interface Props {
   open: boolean
@@ -52,6 +49,7 @@ function CSelect({ value, onChange, options }: { value: string; onChange: (v: st
 }
 
 export default function ActivityForm({ open, onClose, onSuccess }: Props) {
+  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([])
   const [factors, setFactors] = useState<EmissionFactor[]>([])
   const [previewEmission, setPreviewEmission] = useState<number | null>(null)
   const [previewFactor, setPreviewFactor] = useState<number | null>(null)
@@ -62,7 +60,7 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ActivityInput>({
     resolver: zodResolver(activityInputSchema),
-    defaultValues: { date: new Date().toISOString().slice(0, 10), activityType: 'electricity', description: '한국전력', amount: undefined },
+    defaultValues: { date: new Date().toISOString().slice(0, 10), activityType: '', description: '', amount: undefined },
   })
 
   const activityType = watch('activityType')
@@ -70,20 +68,33 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
   const amount = watch('amount')
 
   useEffect(() => {
-    fetch('/api/emission-factors')
-      .then(r => r.ok ? r.json() : [])
-      .then((data: unknown) => setFactors(Array.isArray(data) ? data : []))
-      .catch(() => {})
-  }, [])
+    Promise.all([
+      fetch('/api/activity-types').then(r => r.ok ? r.json() : []),
+      fetch('/api/emission-factors').then(r => r.ok ? r.json() : []),
+    ]).then(([types, facs]: [unknown, unknown]) => {
+      const t = Array.isArray(types) ? (types as ActivityType[]) : []
+      const f = Array.isArray(facs) ? (facs as EmissionFactor[]) : []
+      setActivityTypes(t)
+      setFactors(f)
+      if (t.length > 0) setValue('activityType', t[0].key)
+    }).catch(() => {})
+  }, [setValue])
+
+  const descriptionOptions = factors
+    .filter(f => f.activityType === activityType)
+    .map(f => ({ value: f.name, label: f.name }))
 
   useEffect(() => {
-    const descs = ACTIVITY_TYPE_DESCRIPTIONS[activityType] ?? []
-    setValue('description', descs[0] ?? '')
+    if (descriptionOptions.length > 0) {
+      setValue('description', descriptionOptions[0].value)
+    } else {
+      setValue('description', '')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityType, setValue])
 
   useEffect(() => {
-    const factorKey = DESCRIPTION_TO_FACTOR_KEY[description]
-    const ef = factors.find(f => f.key === factorKey)
+    const ef = factors.find(f => f.name === description && f.activityType === activityType)
     if (ef?.currentFactor != null && amount > 0) {
       setPreviewFactor(ef.currentFactor)
       setPreviewEmission(calculateEmission(amount, ef.currentFactor))
@@ -91,7 +102,7 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
       setPreviewFactor(null)
       setPreviewEmission(null)
     }
-  }, [description, amount, factors])
+  }, [description, amount, factors, activityType])
 
   useEffect(() => {
     if (previewEmission === null) { setPvDisp(0); return }
@@ -120,17 +131,15 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
     finally { setIsSubmitting(false) }
   }
 
-  const unit = ACTIVITY_TYPE_UNITS[activityType] ?? ''
+  const currentType = activityTypes.find(t => t.key === activityType)
+  const unit = currentType?.unit ?? ''
   const IS: React.CSSProperties = { width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-primary)', outline: 'none', transition: 'border-color .15s' }
   const LS: React.CSSProperties = { display: 'block', fontSize: 12, fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }
 
   return (
     <>
-      {/* Overlay */}
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(2px)', zIndex: 40, opacity: open ? 1 : 0, transition: 'opacity .25s', pointerEvents: open ? 'auto' : 'none' }} />
-      {/* Panel */}
       <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 420, zIndex: 50, background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 48px rgba(0,0,0,.5)', transform: open ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 280ms cubic-bezier(0.32,0.72,0,1)' }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
           <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>새 활동 데이터 추가</h2>
           <button onClick={onClose} style={{ padding: 6, borderRadius: 6, border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -138,7 +147,6 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        {/* Preview */}
         {previewEmission !== null && (
           <div style={{ margin: '20px 24px 0', borderRadius: 8, background: 'var(--color-accent-bg)', border: '1px solid rgba(34,211,238,.2)', padding: 16 }}>
             <p style={{ fontSize: 10, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(34,211,238,.6)', marginBottom: 4 }}>예상 배출량</p>
@@ -154,7 +162,6 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
             <label style={LS}>날짜</label>
@@ -163,11 +170,25 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
           </div>
           <div>
             <label style={LS}>활동 유형</label>
-            <CSelect value={activityType} onChange={v => setValue('activityType', v as ActivityInput['activityType'])} options={Object.entries(ACTIVITY_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))} />
+            <CSelect
+              value={activityType}
+              onChange={v => setValue('activityType', v)}
+              options={activityTypes.map(t => ({ value: t.key, label: t.label }))}
+            />
           </div>
           <div>
             <label style={LS}>설명</label>
-            <CSelect value={description} onChange={v => setValue('description', v)} options={(ACTIVITY_TYPE_DESCRIPTIONS[activityType] ?? []).map(d => ({ value: d, label: d }))} />
+            {descriptionOptions.length > 0 ? (
+              <CSelect
+                value={description}
+                onChange={v => setValue('description', v)}
+                options={descriptionOptions}
+              />
+            ) : (
+              <p style={{ fontSize: 12, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
+                등록된 배출계수 없음
+              </p>
+            )}
           </div>
           <div>
             <label style={LS}>사용량 ({unit})</label>
@@ -179,7 +200,6 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
           </div>
         </form>
 
-        {/* Footer */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
           <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'transparent', fontFamily: 'var(--font-syne), Syne, sans-serif', fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', transition: 'all .15s' }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)' }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}>취소</button>
           <button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: isSubmitting ? 'rgba(34,211,238,.4)' : 'var(--color-accent)', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, fontSize: 13, color: '#000', cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'all .15s' }} onMouseEnter={e => { if (!isSubmitting) e.currentTarget.style.filter = 'brightness(1.1)' }} onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}>{isSubmitting ? '추가 중...' : '데이터 추가'}</button>
