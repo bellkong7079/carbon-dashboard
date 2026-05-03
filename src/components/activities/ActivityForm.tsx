@@ -70,7 +70,10 @@ export default function ActivityForm({ open, onClose, onSuccess }: Props) {
   const amount = watch('amount')
 
   useEffect(() => {
-    fetch('/api/emission-factors').then(r => r.json()).then((data: EmissionFactor[]) => setFactors(data)).catch(() => {})
+    fetch('/api/emission-factors')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: unknown) => setFactors(Array.isArray(data) ? data : []))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
