@@ -3,7 +3,7 @@
 제조업 실무자와 경영자를 위한 제품 탄소 발자국(PCF) 추적·시각화 대시보드입니다.  
 전기·원소재·운송 데이터를 입력하면 GHG Protocol 기준 Scope 2/3 배출량을 자동 계산합니다.
 
-🔗 배포 링크: (Vercel 배포 후 링크 추가)  
+🔗 배포 링크: https://tubular-dragon-f54d4f.netlify.app  
 📹 데모 영상: (Loom 또는 YouTube 링크 추가)
 
 ---
