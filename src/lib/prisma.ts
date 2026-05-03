@@ -1,16 +1,12 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
-import { Pool, neonConfig } from '@neondatabase/serverless'
-import ws from 'ws'
-
-// Node.js 18/20에는 글로벌 WebSocket이 없으므로 ws 패키지를 사용
-neonConfig.webSocketConstructor = ws
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 function createPrisma() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-  const adapter = new PrismaNeon(pool)
+  const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
 
