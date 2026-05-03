@@ -5,17 +5,38 @@ import * as XLSX from 'xlsx'
 import { ACTIVITY_TYPE_LABELS } from '@/lib/emissions'
 import type { ActivitiesResponse } from '@/types'
 
+type AggUnit = 'monthly' | 'quarterly' | 'annual'
+
 interface Props {
   open: boolean
   onClose: () => void
 }
 
+function getGroupKey(date: Date, unit: AggUnit): string {
+  const y = date.getFullYear()
+  const m = date.getMonth()
+  if (unit === 'monthly') return `${y}-${String(m + 1).padStart(2, '0')}`
+  if (unit === 'quarterly') return `${y} Q${Math.floor(m / 3) + 1}`
+  return String(y)
+}
+
+function aggLabel(unit: AggUnit): string {
+  if (unit === 'monthly') return '월'
+  if (unit === 'quarterly') return '분기'
+  return '연도'
+}
+
 export default function ExportModal({ open, onClose }: Props) {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [types, setTypes] = useState({ electricity: true, material: true, transport: true })
+  const [aggUnit, setAggUnit] = useState<AggUnit>('monthly')
   const [includeSummary, setIncludeSummary] = useState(true)
   const [includeScope, setIncludeScope] = useState(true)
   const [exporting, setExporting] = useState(false)
+
+  const toggleType = (k: keyof typeof types) =>
+    setTypes(prev => ({ ...prev, [k]: !prev[k] }))
 
   const handleExport = async () => {
     setExporting(true)
@@ -27,10 +48,13 @@ export default function ExportModal({ open, onClose }: Props) {
       if (!res.ok) return
       const json: ActivitiesResponse = await res.json()
 
+      const selectedTypes = Object.entries(types).filter(([, v]) => v).map(([k]) => k)
+      const filtered = json.data.filter(a => selectedTypes.includes(a.activityType))
+
       const wb = XLSX.utils.book_new()
 
       // Sheet 1: raw activities
-      const rawRows = json.data.map(a => ({
+      const rawRows = filtered.map(a => ({
         '일자': new Date(a.date).toISOString().slice(0, 10),
         '활동 유형': ACTIVITY_TYPE_LABELS[a.activityType] ?? a.activityType,
         '설명': a.description,
@@ -44,34 +68,37 @@ export default function ExportModal({ open, onClose }: Props) {
       ws1['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 18 }, { wch: 10 }]
       XLSX.utils.book_append_sheet(wb, ws1, '활동 데이터')
 
-      // Sheet 2: monthly summary
+      // Sheet 2: aggregated summary (monthly / quarterly / annual)
       if (includeSummary) {
-        const monthMap: Record<string, { electricity: number; material: number; transport: number; total: number }> = {}
-        for (const a of json.data) {
-          const month = new Date(a.date).toISOString().slice(0, 7)
-          if (!monthMap[month]) monthMap[month] = { electricity: 0, material: 0, transport: 0, total: 0 }
+        const groupMap: Record<string, { electricity: number; material: number; transport: number; total: number }> = {}
+        for (const a of filtered) {
+          const key = getGroupKey(new Date(a.date), aggUnit)
+          if (!groupMap[key]) groupMap[key] = { electricity: 0, material: 0, transport: 0, total: 0 }
           const cat = a.activityType as 'electricity' | 'material' | 'transport'
-          if (cat in monthMap[month]) monthMap[month][cat] += a.emission
-          monthMap[month].total += a.emission
+          if (cat in groupMap[key]) groupMap[key][cat] += a.emission
+          groupMap[key].total += a.emission
         }
-        const summaryRows = Object.entries(monthMap)
+        const label = aggLabel(aggUnit)
+        const summaryRows = Object.entries(groupMap)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([month, v]) => ({
-            '월': month,
-            '전기 (kgCO₂e)': +v.electricity.toFixed(4),
-            '원소재 (kgCO₂e)': +v.material.toFixed(4),
-            '운송 (kgCO₂e)': +v.transport.toFixed(4),
+          .map(([key, v]) => ({
+            [label]: key,
+            ...(types.electricity ? { '전기 (kgCO₂e)': +v.electricity.toFixed(4) } : {}),
+            ...(types.material ? { '원소재 (kgCO₂e)': +v.material.toFixed(4) } : {}),
+            ...(types.transport ? { '운송 (kgCO₂e)': +v.transport.toFixed(4) } : {}),
             '합계 (kgCO₂e)': +v.total.toFixed(4),
           }))
         const ws2 = XLSX.utils.json_to_sheet(summaryRows)
-        ws2['!cols'] = [{ wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }]
-        XLSX.utils.book_append_sheet(wb, ws2, '월별 요약')
+        const colCount = 1 + selectedTypes.length + 1
+        ws2['!cols'] = Array(colCount).fill({ wch: 18 })
+        const sheetName = aggUnit === 'monthly' ? '월별 요약' : aggUnit === 'quarterly' ? '분기별 요약' : '연간 요약'
+        XLSX.utils.book_append_sheet(wb, ws2, sheetName)
       }
 
       // Sheet 3: scope breakdown
       if (includeScope) {
         const scopeMap: Record<string, number> = {}
-        for (const a of json.data) {
+        for (const a of filtered) {
           scopeMap[a.scope] = (scopeMap[a.scope] ?? 0) + a.emission
         }
         const total = Object.values(scopeMap).reduce((s, v) => s + v, 0)
@@ -95,13 +122,16 @@ export default function ExportModal({ open, onClose }: Props) {
 
   if (!open) return null
 
+  const IS: React.CSSProperties = { flex: 1, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', outline: 'none', colorScheme: 'dark' }
+  const SL: React.CSSProperties = { fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 10 }
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(3px)' }} />
-      <div style={{ position: 'relative', zIndex: 1, width: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 24, boxShadow: '0 24px 64px rgba(0,0,0,.7)', animation: 'slideUpFade .25s ease-out' }}>
+      <div style={{ position: 'relative', zIndex: 1, width: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 24, boxShadow: '0 24px 64px rgba(0,0,0,.7)', animation: 'slideUpFade .25s ease-out' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Download size={15} style={{ color: 'var(--text-secondary)' }} />
             <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>Excel 내보내기 옵션</h2>
@@ -113,48 +143,69 @@ export default function ExportModal({ open, onClose }: Props) {
 
         {/* Date range */}
         <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 10 }}>날짜 범위</p>
+          <p style={SL}>날짜 범위</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ flex: 1, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', outline: 'none', colorScheme: 'dark' }}
-            />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={IS} />
             <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace' }}>~</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ flex: 1, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', outline: 'none', colorScheme: 'dark' }}
-            />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={IS} />
           </div>
           <p style={{ marginTop: 6, fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)' }}>비워두면 전체 기간 내보내기</p>
         </div>
 
+        {/* Activity type filter */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={SL}>활동 유형</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['electricity', 'material', 'transport'] as const).map(k => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => toggleType(k)}
+                style={{
+                  flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${types[k] ? 'var(--color-accent)' : 'var(--border-subtle)'}`,
+                  background: types[k] ? 'var(--color-accent-bg)' : 'transparent',
+                  fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12,
+                  color: types[k] ? 'var(--color-accent)' : 'var(--text-muted)',
+                  cursor: 'pointer', transition: 'all .15s',
+                }}
+              >
+                {k === 'electricity' ? '전기' : k === 'material' ? '원소재' : '운송'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Aggregation unit */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={SL}>집계 단위</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['monthly', 'quarterly', 'annual'] as const).map(u => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setAggUnit(u)}
+                style={{
+                  flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${aggUnit === u ? 'var(--color-accent)' : 'var(--border-subtle)'}`,
+                  background: aggUnit === u ? 'var(--color-accent-bg)' : 'transparent',
+                  fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12,
+                  color: aggUnit === u ? 'var(--color-accent)' : 'var(--text-muted)',
+                  cursor: 'pointer', transition: 'all .15s',
+                }}
+              >
+                {u === 'monthly' ? '월별' : u === 'quarterly' ? '분기별' : '연간'}
+              </button>
+            ))}
+          </div>
+          <p style={{ marginTop: 6, fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)' }}>요약 시트의 집계 기준</p>
+        </div>
+
         {/* Sheet options */}
         <div style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 10 }}>시트 구성</p>
+          <p style={SL}>시트 구성</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* Always included */}
-            <CheckRow
-              checked={true}
-              disabled={true}
-              label="활동 데이터"
-              sub="원시 데이터 전체 (항상 포함)"
-            />
-            <CheckRow
-              checked={includeSummary}
-              onChange={setIncludeSummary}
-              label="월별 요약"
-              sub="월 × 카테고리 배출량 합산"
-            />
-            <CheckRow
-              checked={includeScope}
-              onChange={setIncludeScope}
-              label="Scope 분류"
-              sub="Scope 2 / Scope 3 비율"
-            />
+            <CheckRow checked={true} disabled={true} label="활동 데이터" sub="필터된 원시 데이터 전체 (항상 포함)" />
+            <CheckRow checked={includeSummary} onChange={setIncludeSummary} label={aggUnit === 'monthly' ? '월별 요약' : aggUnit === 'quarterly' ? '분기별 요약' : '연간 요약'} sub="집계 단위별 카테고리 배출량" />
+            <CheckRow checked={includeScope} onChange={setIncludeScope} label="Scope 분류" sub="Scope 2 / Scope 3 비율" />
           </div>
         </div>
 
@@ -165,8 +216,8 @@ export default function ExportModal({ open, onClose }: Props) {
           </button>
           <button
             onClick={handleExport}
-            disabled={exporting}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 7, border: 'none', background: exporting ? 'rgba(34,211,238,.3)' : 'var(--color-accent)', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, fontSize: 13, color: '#000', cursor: exporting ? 'not-allowed' : 'pointer', transition: 'all .15s' }}
+            disabled={exporting || !Object.values(types).some(Boolean)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 7, border: 'none', background: exporting ? 'rgba(34,211,238,.3)' : 'var(--color-accent)', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 500, fontSize: 13, color: '#000', cursor: (exporting || !Object.values(types).some(Boolean)) ? 'not-allowed' : 'pointer', transition: 'all .15s', opacity: !Object.values(types).some(Boolean) ? 0.5 : 1 }}
             onMouseEnter={e => { if (!exporting) e.currentTarget.style.filter = 'brightness(1.1)' }}
             onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
           >
