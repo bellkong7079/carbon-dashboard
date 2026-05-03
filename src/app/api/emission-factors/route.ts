@@ -39,6 +39,6 @@ export async function GET() {
     return NextResponse.json(data)
   } catch (error) {
     console.error('[GET /api/emission-factors]', error)
-    return NextResponse.json({ error: '서버 오류가 발생했습니다' }, { status: 500 })
+    return NextResponse.json({ error: '서버 오류가 발생했습니다', debug: String(error) }, { status: 500 })
   }
 }
