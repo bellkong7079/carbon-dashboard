@@ -41,6 +41,7 @@ function Slider({ label, unit, value, onChange, min = -80, max = 20 }: {
               onChange(clamped)
               setRaw(String(clamped))
             }}
+            onFocus={e => e.target.select()}
             style={{ width: 64, padding: '3px 6px', borderRadius: 6, border: `1px solid ${value !== 0 ? color : 'var(--border-subtle)'}`, background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 13, color, fontWeight: 500, outline: 'none', textAlign: 'right' }}
           />
           <span style={{ fontSize: 13, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color }}>%</span>
