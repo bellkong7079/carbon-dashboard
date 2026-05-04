@@ -18,6 +18,9 @@ function Slider({ label, unit, value, onChange, min = -80, max = 20 }: {
   label: string; unit: string; value: number; onChange: (v: number) => void
   min?: number; max?: number
 }) {
+  const [raw, setRaw] = useState(String(value))
+  useEffect(() => { setRaw(String(value)) }, [value])
+
   const color = value < 0 ? 'var(--color-success)' : value > 0 ? 'var(--color-danger)' : 'var(--text-muted)'
   return (
     <div style={{ marginBottom: 20 }}>
@@ -25,10 +28,18 @@ function Slider({ label, unit, value, onChange, min = -80, max = 20 }: {
         <span style={{ fontSize: 13, fontFamily: 'var(--font-syne), Syne, sans-serif', color: 'var(--text-primary)' }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input
-            type="number" min={min} max={max} step={1} value={value}
+            type="text" inputMode="numeric" value={raw}
             onChange={e => {
-              const v = Math.max(min, Math.min(max, Number(e.target.value)))
-              if (!isNaN(v)) onChange(v)
+              const s = e.target.value
+              setRaw(s)
+              const n = parseInt(s, 10)
+              if (!isNaN(n)) onChange(Math.max(min, Math.min(max, n)))
+            }}
+            onBlur={() => {
+              const n = parseInt(raw, 10)
+              const clamped = isNaN(n) ? 0 : Math.max(min, Math.min(max, n))
+              onChange(clamped)
+              setRaw(String(clamped))
             }}
             style={{ width: 64, padding: '3px 6px', borderRadius: 6, border: `1px solid ${value !== 0 ? color : 'var(--border-subtle)'}`, background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 13, color, fontWeight: 500, outline: 'none', textAlign: 'right' }}
           />
