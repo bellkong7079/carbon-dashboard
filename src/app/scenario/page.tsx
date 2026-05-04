@@ -18,13 +18,22 @@ function Slider({ label, unit, value, onChange, min = -80, max = 20 }: {
   label: string; unit: string; value: number; onChange: (v: number) => void
   min?: number; max?: number
 }) {
+  const color = value < 0 ? 'var(--color-success)' : value > 0 ? 'var(--color-danger)' : 'var(--text-muted)'
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 13, fontFamily: 'var(--font-syne), Syne, sans-serif', color: 'var(--text-primary)' }}>{label}</span>
-        <span style={{ fontSize: 14, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: value < 0 ? 'var(--color-success)' : value > 0 ? 'var(--color-danger)' : 'var(--text-muted)', fontWeight: 500, minWidth: 60, textAlign: 'right' }}>
-          {value > 0 ? '+' : ''}{value}%
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            type="number" min={min} max={max} step={1} value={value}
+            onChange={e => {
+              const v = Math.max(min, Math.min(max, Number(e.target.value)))
+              if (!isNaN(v)) onChange(v)
+            }}
+            style={{ width: 64, padding: '3px 6px', borderRadius: 6, border: `1px solid ${value !== 0 ? color : 'var(--border-subtle)'}`, background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 13, color, fontWeight: 500, outline: 'none', textAlign: 'right' }}
+          />
+          <span style={{ fontSize: 13, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color }}>%</span>
+        </div>
       </div>
       <input
         type="range" min={min} max={max} step={1} value={value}
