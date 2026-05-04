@@ -12,18 +12,25 @@ import { prisma } from '@/lib/prisma'
  *       200:
  *         description: 배출계수 목록 반환
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const allVersions = searchParams.get('versions') === 'all'
+
     const factors = await prisma.emissionFactor.findMany({
       include: {
         versions: {
-          where: { validTo: null },
+          where: allVersions ? undefined : { validTo: null },
           orderBy: { validFrom: 'desc' },
-          take: 1,
+          take: allVersions ? undefined : 1,
         },
       },
       orderBy: { activityType: 'asc' },
     })
+
+    if (allVersions) {
+      return NextResponse.json(factors)
+    }
 
     const data = factors.map((f) => ({
       id: f.id,

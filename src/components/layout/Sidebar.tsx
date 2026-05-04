@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ListChecks } from 'lucide-react'
+import { LayoutDashboard, ListChecks, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/', label: '대시보드', icon: LayoutDashboard },
   { href: '/activities', label: '활동 데이터', icon: ListChecks },
+  { href: '/emission-factors', label: '배출계수 이력', icon: FlaskConical },
 ]
 
 function HexIcon() {
