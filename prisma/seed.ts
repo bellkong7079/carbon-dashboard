@@ -20,10 +20,10 @@ async function main() {
 
   // 2. 배출계수 마스터 + 버전
   const factors = [
-    { key: 'electricity_kepco', name: '한국전력',   unit: 'kgCO₂e/kWh',    activityType: 'electricity', factor: 0.456, source: '환경부 고시 2024-01' },
-    { key: 'material_plastic1', name: '플라스틱 1', unit: 'kgCO₂e/kg',     activityType: 'material',   factor: 2.3,   source: 'Ecoinvent v3.9' },
-    { key: 'material_plastic2', name: '플라스틱 2', unit: 'kgCO₂e/kg',     activityType: 'material',   factor: 3.2,   source: 'Ecoinvent v3.9' },
-    { key: 'transport_truck',   name: '트럭',       unit: 'kgCO₂e/ton-km', activityType: 'transport',  factor: 3.5,   source: 'IPCC AR6 WG3' },
+    { key: 'electricity_kepco', name: '한국전력',   unit: 'kgCO₂e/kWh',    activityType: 'electricity', factor: 0.456, source: '과제 제공 참고값 (CT-045)' },
+    { key: 'material_plastic1', name: '플라스틱 1', unit: 'kgCO₂e/kg',     activityType: 'material',   factor: 2.3,   source: '과제 제공 참고값 (CT-045)' },
+    { key: 'material_plastic2', name: '플라스틱 2', unit: 'kgCO₂e/kg',     activityType: 'material',   factor: 3.2,   source: '과제 제공 참고값 (CT-045)' },
+    { key: 'transport_truck',   name: '트럭',       unit: 'kgCO₂e/ton-km', activityType: 'transport',  factor: 3.5,   source: '과제 제공 참고값 (CT-045)' },
   ]
 
   for (const f of factors) {
