@@ -48,17 +48,26 @@ yarn start
 
 ## 스크린샷
 
-### 대시보드 메인
+### 대시보드 — KPI · 월별 추이
 ![대시보드](screenshots/dashboard.png)
 
-### 활동 데이터 입력 — 정상
-![데이터 입력](screenshots/activity-form.png)
+### 대시보드 — GHG Scope 분류
+![대시보드 하단](screenshots/dashboard2.png)
 
-### 활동 데이터 입력 — 에러 메시지
-![에러 메시지](screenshots/form-error.png)
+### 활동 데이터 목록
+![활동 데이터](screenshots/activity-list.png)
+
+### 활동 데이터 입력 폼
+![데이터 입력](screenshots/activity-form.png)
 
 ### Excel 업로드
 ![업로드](screenshots/excel-upload.png)
+
+### Excel 내보내기 옵션
+![내보내기](screenshots/excel-export.png)
+
+### 유형 및 배출계수 관리
+![배출계수 관리](screenshots/factor-manager.png)
 
 ### 배출계수 버전 이력
 ![배출계수 이력](screenshots/emission-factors.png)
