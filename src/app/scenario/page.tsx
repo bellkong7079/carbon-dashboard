@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Header from '@/components/layout/Header'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import type { Activity, EmissionFactor } from '@/types'
+import type { Activity } from '@/types'
 
 /* ── 유틸 ─────────────────────────────────────────── */
 function round2(n: number) { return Math.round(n * 100) / 100 }
@@ -75,30 +75,19 @@ function KpiCard({ label, value, sub, highlight }: { label: string; value: strin
 /* ── 메인 페이지 ──────────────────────────────────── */
 export default function ScenarioPage() {
   const [activities, setActivities] = useState<Activity[]>([])
-  const [factors, setFactors] = useState<EmissionFactor[]>([])
   const [loading, setLoading] = useState(true)
 
   // 시나리오 상태
   const [elecPct, setElecPct] = useState(0)
   const [matPct, setMatPct] = useState(0)
   const [transPct, setTransPct] = useState(0)
-  const [matFactorKey, setMatFactorKey] = useState<string>('') // 원소재 계수 교체
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/activities?limit=9999&sortBy=date&order=asc').then(r => r.ok ? r.json() : { data: [] }),
-      fetch('/api/emission-factors').then(r => r.ok ? r.json() : []),
-    ]).then(([acts, facs]) => {
-      setActivities(Array.isArray(acts.data) ? acts.data : [])
-      const fArr: EmissionFactor[] = Array.isArray(facs) ? facs : []
-      setFactors(fArr)
-      const defaultMat = fArr.find(f => f.activityType === 'material')
-      if (defaultMat) setMatFactorKey(defaultMat.key)
-    }).finally(() => setLoading(false))
+    fetch('/api/activities?limit=9999&sortBy=date&order=asc')
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then(acts => setActivities(Array.isArray(acts.data) ? acts.data : []))
+      .finally(() => setLoading(false))
   }, [])
-
-  const matFactors = factors.filter(f => f.activityType === 'material')
-  const overrideFactor = factors.find(f => f.key === matFactorKey)
 
   // 시나리오 계산
   const { baseline, simulated } = useMemo(() => {
@@ -111,12 +100,7 @@ export default function ScenarioPage() {
         simulated.electricity += round2(a.emission * (1 + elecPct / 100))
       } else if (a.activityType === 'material') {
         baseline.material += a.emission
-        // 계수 교체 시: amount × newFactor, 아니면 quantity 변화만
-        if (overrideFactor?.currentFactor != null) {
-          simulated.material += round2(a.amount * overrideFactor.currentFactor * (1 + matPct / 100))
-        } else {
-          simulated.material += round2(a.emission * (1 + matPct / 100))
-        }
+        simulated.material += round2(a.emission * (1 + matPct / 100))
       } else if (a.activityType === 'transport') {
         baseline.transport += a.emission
         simulated.transport += round2(a.emission * (1 + transPct / 100))
@@ -124,7 +108,7 @@ export default function ScenarioPage() {
     }
 
     return { baseline, simulated }
-  }, [activities, elecPct, matPct, transPct, overrideFactor])
+  }, [activities, elecPct, matPct, transPct])
 
   const baseTotal = round2(baseline.electricity + baseline.material + baseline.transport)
   const simTotal = round2(simulated.electricity + simulated.material + simulated.transport)
@@ -189,21 +173,6 @@ export default function ScenarioPage() {
               <Slider label="원소재 사용량" unit="kg 변화" value={matPct} onChange={setMatPct} />
               <Slider label="운송 거리" unit="ton-km 변화" value={transPct} onChange={setTransPct} />
 
-              {/* 원소재 계수 교체 */}
-              {matFactors.length > 1 && (
-                <div style={{ marginTop: 4, paddingTop: 16, borderTop: '1px solid var(--border-faint)' }}>
-                  <p style={{ fontSize: 12, fontFamily: 'var(--font-syne), Syne, sans-serif', color: 'var(--text-secondary)', marginBottom: 8 }}>원소재 배출계수 변경</p>
-                  <select value={matFactorKey} onChange={e => setMatFactorKey(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: 12, color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}>
-                    {matFactors.map(f => (
-                      <option key={f.key} value={f.key}>{f.name} ({f.currentFactor} {f.unit})</option>
-                    ))}
-                  </select>
-                  <p style={{ fontSize: 11, fontFamily: 'var(--font-dm-mono), DM Mono, monospace', color: 'var(--text-muted)', marginTop: 5 }}>
-                    원소재 계수 변경 시 모든 원소재 활동에 적용됩니다
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* 설명 카드 */}
