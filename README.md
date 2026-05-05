@@ -4,7 +4,7 @@
 전기·원소재·운송 데이터를 입력하면 GHG Protocol 기준 Scope 2/3 배출량을 자동 계산합니다.
 
 🔗 **배포 링크**: https://carbon-dashboard-production.up.railway.app  
-📹 **데모 영상**: (Loom 또는 YouTube 링크 추가)  
+📹 **데모 영상**: [demo.mp4](screenshots/test.mp4)  
 📁 **GitHub**: https://github.com/bellkong7079/carbon-dashboard
 
 ---
